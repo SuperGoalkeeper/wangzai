@@ -105,6 +105,21 @@ body { font-family: -apple-system, sans-serif; background: #0f0f0f; color: #e0e0
     </div>
   </div>
 
+  <div class="section">
+    <div class="section-title">🔍 媒资扫描</div>
+    <div class="field">
+      <label>选择要扫描的目录</label>
+      <div id="dirList" style="margin-top:8px;"></div>
+      <div class="hint">勾选需要索引的目录，点击「开始扫描」</div>
+    </div>
+    <div class="field" id="scanStatus" style="display:none;">
+      <div id="scanProgress" style="font-size:13px;color:#00d4ff;">扫描中...</div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="scanBtn" onclick="startScan()" style="background:#00897b;">🔍 开始扫描</button>
+    </div>
+  </div>
+
   <div class="section actions">
     <button class="btn" id="saveBtn" onclick="saveConfig()">💾 保存设置</button>
   </div>
@@ -257,7 +272,72 @@ fields.forEach(f => {
   document.getElementById(f + '_r').addEventListener('input', updateStatus);
 });
 
+// 加载可扫描目录
+async function loadDirs() {
+  try {
+    const r = await fetch('/api/index/dirs');
+    if (!r.ok) return;
+    const data = await r.json();
+    const list = document.getElementById('dirList');
+    list.innerHTML = data.dirs.map(d => `
+      <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:14px;color:#ccc;">
+        <input type="checkbox" value="${d.path}" checked style="accent-color:#00d4ff;width:16px;height:16px;">
+        <span>${d.name}</span>
+        <span style="color:#555;font-size:12px;">${d.count} 文件</span>
+      </label>
+    `).join('');
+  } catch(e) {}
+}
+
+// 开始扫描
+async function startScan() {
+  const checks = document.querySelectorAll('#dirList input[type=checkbox]:checked');
+  if (checks.length === 0) {
+    toast('请至少选择一个目录', 'warn');
+    return;
+  }
+  const dirs = Array.from(checks).map(c => c.value);
+  const btn = document.getElementById('scanBtn');
+  const status = document.getElementById('scanStatus');
+  const progress = document.getElementById('scanProgress');
+  btn.disabled = true;
+  btn.textContent = '⏳ 扫描中...';
+  btn.className = 'btn saving';
+  status.style.display = 'block';
+  progress.textContent = '正在扫描...';
+  try {
+    const r = await fetch('/api/index/directories', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({directories: dirs})
+    });
+    const data = await r.json();
+    if (r.ok) {
+      progress.textContent = `✅ 索引 ${data.indexed} 新增, ${data.skipped} 跳过, ${data.errors} 错误 (共 ${data.total} 文件)`;
+      btn.className = 'btn success';
+      btn.textContent = '✅ 扫描完成';
+      toast(`✅ 扫描完成，新增 ${data.indexed} 个文件`);
+      loadDirs();
+    } else {
+      throw new Error(data.error || '扫描失败');
+    }
+  } catch(e) {
+    progress.textContent = '❌ ' + e.message;
+    btn.className = 'btn error';
+    btn.textContent = '❌ 扫描失败';
+    toast('❌ ' + e.message, 'error');
+  } finally {
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.className = 'btn';
+      btn.style.background = '#00897b';
+      btn.textContent = '🔍 开始扫描';
+    }, 3000);
+  }
+}
+
 loadConfig();
+loadDirs();
 </script>
 </body>
 </html>
