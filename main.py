@@ -197,11 +197,6 @@ class SendVideoRequest(BaseModel):
 async def index():
     return FileResponse(os.path.join(os.path.dirname(__file__), 'static', 'index.html'))
 
-KNOWN_SCAN_DIRS = [
-    {"name": "优秀网络素材", "path": "/Secret/优秀网络素材"},
-    {"name": "media-ingest", "path": "/Secret/media-ingest"},
-]
-
 @app.get("/settings.html")
 async def settings_page():
     return FileResponse(os.path.join(os.path.dirname(__file__), 'static', 'settings.html'))
@@ -209,14 +204,15 @@ async def settings_page():
 
 @app.get("/api/index/dirs")
 async def api_index_dirs():
-    """列出可扫描目录及文件数"""
+    """列出NAS根目录下所有子目录及文件数"""
     dirs = []
-    for d in KNOWN_SCAN_DIRS:
-        full = os.path.join(NAS_ROOT, d["path"].lstrip('/'))
-        count = 0
-        if os.path.isdir(full):
-            count = sum(1 for _ in os.scandir(full) if _.is_file())
-        dirs.append({"name": d["name"], "path": d["path"], "count": count})
+    try:
+        for entry in sorted(os.scandir(NAS_ROOT), key=lambda e: e.name.lower()):
+            if entry.is_dir() and not entry.name.startswith('.'):
+                count = sum(1 for _ in os.scandir(entry.path) if _.is_file())
+                dirs.append({"name": entry.name, "path": entry.name, "count": count})
+    except OSError:
+        pass
     return {"dirs": dirs}
 
 
