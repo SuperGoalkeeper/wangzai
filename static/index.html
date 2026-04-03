@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>媒体智能管理平台</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, sans-serif; background: #0f0f0f; color: #e0e0e0; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+h1 { text-align: center; margin-bottom: 16px; color: #fff; font-size: 22px; }
+h1 a { text-decoration: none; margin-left: 8px; opacity: 0.5; }
+h1 a:hover { opacity: 1; }
+.stats { display: flex; gap: 12px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+.stat-card { background: #1a1a2e; padding: 12px 20px; border-radius: 10px; text-align: center; min-width: 80px; cursor: pointer; transition: all 0.2s; }
+.stat-card:hover { background: #222244; }
+.stat-card .num { font-size: 24px; font-weight: bold; color: #00d4ff; }
+.stat-card .label { font-size: 11px; color: #888; margin-top: 4px; }
+.nav { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+.nav-btn { padding: 8px 16px; border: 1px solid #333; border-radius: 8px; background: transparent; color: #ccc; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+.nav-btn:hover, .nav-btn.active { border-color: #00d4ff; color: #00d4ff; background: #00d4ff11; }
+.controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+.btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+.btn-primary { background: #0066ff; color: #fff; }
+.btn-primary:hover { background: #0052cc; }
+.btn-success { background: #00c853; color: #fff; }
+.btn-success:hover { background: #00a844; }
+.btn-danger { background: #ff1744; color: #fff; }
+.btn-danger:hover { background: #d50000; }
+.btn-outline { background: transparent; border: 1px solid #333; color: #ccc; }
+.btn-outline:hover { border-color: #00d4ff; color: #00d4ff; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+.card { background: #1a1a2e; border-radius: 12px; position: relative; }
+.card img { width: 100%; height: auto; max-height: 80vh; object-fit: contain; display: block; background: #111; border-radius: 12px 12px 0 0; }
+.card-info { padding: 10px; font-size: 12px; color: #888; }
+.card-info .name { color: #ccc; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rating { display: flex; gap: 4px; padding: 10px; justify-content: center; flex-wrap: wrap; }
+.rating .score { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; transition: all 0.15s; }
+.rating .score:hover, .rating .score.active { border-color: #00d4ff; background: #00d4ff22; color: #00d4ff; }
+.loading { text-align: center; padding: 40px; color: #666; }
+
+/* 统计面板 */
+.panel { display: none; background: #1a1a2e; border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+.panel.show { display: block; }
+.panel h3 { font-size: 16px; color: #00d4ff; margin-bottom: 15px; }
+.dist-bar { display: flex; gap: 4px; align-items: flex-end; height: 120px; margin-bottom: 10px; }
+.dist-bar .bar { flex: 1; background: #0066ff; border-radius: 4px 4px 0 0; min-height: 4px; position: relative; transition: height 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.dist-bar .bar .val { font-size: 11px; color: #fff; margin-bottom: 4px; }
+.dist-bar .bar .lbl { font-size: 10px; color: #888; margin-top: 4px; }
+
+/* 已评记录 */
+.rated-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.rated-item { background: #111; border-radius: 8px; padding: 10px; display: flex; gap: 10px; align-items: center; }
+.rated-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; background: #222; }
+.rated-item .info { flex: 1; min-width: 0; }
+.rated-item .info .name { font-size: 12px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rated-item .info .meta { font-size: 11px; color: #666; margin-top: 2px; }
+.rated-item .badge { font-size: 18px; font-weight: bold; color: #00d4ff; min-width: 30px; text-align: center; }
+.rated-item .rescore { display: flex; gap: 2px; margin-top: 4px; }
+.rated-item .rescore span { cursor: pointer; font-size: 11px; padding: 2px 5px; border-radius: 4px; background: #222; color: #888; }
+.rated-item .rescore span:hover { background: #00d4ff22; color: #00d4ff; }
+.pagination { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
+.filter-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+.filter-bar select, .filter-bar input { padding: 6px 12px; border: 1px solid #333; border-radius: 6px; background: #0f0f0f; color: #e0e0e0; font-size: 13px; }
+
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #00c853; color: #fff; padding: 12px 24px; border-radius: 10px; font-weight: 600; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 999; box-shadow: 0 4px 20px rgba(0,0,0,0.4); white-space: nowrap; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.error { background: #ff1744; }
+.toast.warn { background: #ffab00; color: #000; }
+
+/* 快捷键提示 */
+.kbd-hint { text-align: center; font-size: 11px; color: #444; margin-top: 10px; }
+.kbd-hint kbd { background: #222; padding: 2px 6px; border-radius: 3px; border: 1px solid #333; color: #888; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🖼️ 媒体智能管理平台 <a href="/settings.html" title="设置">⚙️</a></h1>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showView('rate')" id="nav-rate">📷 评分</button>
+    <button class="nav-btn" onclick="showView('stats')" id="nav-stats">📊 统计</button>
+    <button class="nav-btn" onclick="showView('rated')" id="nav-rated">📋 已评</button>
+  </div>
+
+  <!-- 评分视图 -->
+  <div id="view-rate">
+    <div class="controls">
+      <button class="btn btn-primary" onclick="loadBatch('image')">📷 图片批次</button>
+      <button class="btn btn-primary" onclick="loadBatch('video')">🎬 视频批次</button>
+      <button class="btn btn-success" onclick="submitRatings()">✅ 提交评分 <span class="rated-badge" id="rated-badge"></span></button>
+      <button class="btn btn-outline" onclick="downloadCSV('image')">📥 导出图片CSV</button>
+      <button class="btn btn-outline" onclick="downloadCSV('video')">📥 导出视频CSV</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="loading" id="loading" style="display:none">加载中...</div>
+    <div class="controls" id="bottom-controls" style="display:none; margin-top:20px">
+      <button class="btn btn-primary" onclick="loadBatch('image')">📷 图片批次</button>
+      <button class="btn btn-primary" onclick="loadBatch('video')">🎬 视频批次</button>
+      <button class="btn btn-success" onclick="submitRatings()">✅ 提交评分 <span class="rated-badge" id="rated-badge"></span></button>
+    </div>
+    <div class="kbd-hint">
+      快捷键: <kbd>1</kbd>-<kbd>9</kbd> 评分 · <kbd>0</kbd> 零分 · <kbd>Enter</kbd> 提交 · <kbd>N</kbd> 下一批 · 方向键切换图片
+    </div>
+  </div>
+
+  <!-- 统计视图 -->
+  <div id="view-stats" style="display:none">
+    <div class="panel show" id="stats-panel"></div>
+  </div>
+
+  <!-- 已评视图 -->
+  <div id="view-rated" style="display:none">
+    <div class="filter-bar">
+      <select id="rated-type" onchange="loadRated()">
+        <option value="image">📷 图片</option>
+        <option value="video">🎬 视频</option>
+      </select>
+      <select id="rated-score" onchange="loadRated()">
+        <option value="0-9">全部评分</option>
+        <option value="9-9">仅 9 分</option>
+        <option value="7-9">7-9 分</option>
+        <option value="5-6">5-6 分</option>
+        <option value="0-4">0-4 分</option>
+        <option value="0-0">仅 0 分</option>
+      </select>
+      <button class="btn btn-danger" onclick="deleteLowScores()" id="btn-delete" style="display:none">🗑️ 删除低分</button>
+      <button class="btn btn-outline" onclick="downloadCSV(document.getElementById('rated-type').value)">📥 导出</button>
+    </div>
+    <div class="rated-list" id="rated-list"></div>
+    <div class="pagination" id="rated-pagination"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentBatch = null;
+let selectedIdx = -1;
+let ratedPage = 1;
+const API = '';
+
+function toast(msg, type=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  if (type === true) type = 'error';
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// === 视图切换 ===
+function showView(view) {
+  ['rate','stats','rated'].forEach(v => {
+    document.getElementById('view-' + v).style.display = v === view ? 'block' : 'none';
+    document.getElementById('nav-' + v).className = 'nav-btn' + (v === view ? ' active' : '');
+  });
+  if (view === 'stats') loadRatingStats();
+  if (view === 'rated') loadRated();
+}
+
+// === 统计 ===
+async function loadStats() {
+  try {
+    const r = await fetch(`${API}/api/index/stats`);
+    const d = await r.json();
+    document.getElementById('stats').innerHTML = `
+      <div class="stat-card" onclick="showView('rate')"><div class="num">${d.total_images}</div><div class="label">图片</div></div>
+      <div class="stat-card" onclick="showView('rate')"><div class="num">${d.total_videos}</div><div class="label">视频</div></div>
+      <div class="stat-card" onclick="showView('stats')"><div class="num">${d.total_rated}</div><div class="label">已评</div></div>
+      <div class="stat-card" onclick="showView('rate')"><div class="num">${d.total_unrated}</div><div class="label">未评</div></div>
+    `;
+  } catch(e) {}
+}
+
+async function loadRatingStats() {
+  try {
+    const r = await fetch(`${API}/api/stats/ratings`);
+    const d = await r.json();
+    let html = '';
+    for (const type of ['image', 'video']) {
+      const s = d[type];
+      const dist = s.distribution;
+      const maxCount = Math.max(...Object.values(dist), 1);
+      html += `<h3>${type === 'image' ? '📷' : '🎬'} ${type === 'image' ? '图片' : '视频'}评分分布</h3>`;
+      html += `<div style="margin-bottom:8px;font-size:13px;color:#888">已评 ${s.rated} / ${s.total} (${s.rated ? Math.round(s.rated/s.total*100) : 0}%)</div>`;
+      html += `<div class="dist-bar">`;
+      for (let i = 0; i <= 9; i++) {
+        const count = dist[i] || 0;
+        const h = Math.max(4, (count / maxCount) * 100);
+        html += `<div class="bar" style="height:${h}px;background:${i>=7?'#00c853':i>=4?'#0066ff':'#ff1744'}">
+          <span class="val">${count}</span>
+          <span class="lbl">${i}</span></div>`;
+      }
+      html += `</div>`;
+    }
+    document.getElementById('stats-panel').innerHTML = html;
+  } catch(e) { toast('加载统计失败', true); }
+}
+
+// === 评分批次 ===
+async function loadBatch(type='image') {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('grid').innerHTML = '';
+  selectedIdx = -1;
+  try {
+    const r = await fetch(`${API}/api/batch?type=${type}`);
+    if (!r.ok) { toast('没有更多未评分的媒体了', 'warn'); return; }
+    currentBatch = await r.json();
+    renderBatch();
+  } catch(e) {
+    toast('加载失败: ' + e.message, true);
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+function renderBatch() {
+  if (!currentBatch) return;
+  const grid = document.getElementById('grid');
+  grid.innerHTML = currentBatch.items.map((item, i) => `
+    <div class="card" data-index="${i}" id="card-${i}">
+      ${item.media_type === 'video'
+        ? `<div style="position:relative">
+             <img src="/api/media/${item.media_id}/frame" onclick="playVideo(${item.media_id})" style="cursor:pointer" title="点击播放视频" />
+             <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:48px;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,0.8)">▶️</div>
+           </div>`
+        : `<img src="/api/media/${item.media_id}/image?size=thumb" onclick="window.open('/api/media/${item.media_id}/image')" style="cursor:pointer" title="点击查看原图" />`
+      }
+      <div class="card-info">
+        <div class="name">${item.filename}</div>
+        <div>${item.width}×${item.height} | ${(item.file_size/1024/1024).toFixed(1)}MB</div>
+      </div>
+      <div class="rating">
+        ${[0,1,2,3,4,5,6,7,8,9].map(s => `
+          <div class="score ${item.score===s?'active':''}"
+               onclick="setScore(${i},${s})">${s}</div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('bottom-controls').style.display = 'flex';
+  highlightCard(0);
+}
+
+function highlightCard(idx) {
+  if (!currentBatch) return;
+  idx = Math.max(0, Math.min(idx, currentBatch.items.length - 1));
+  document.querySelectorAll('.card').forEach(c => c.style.outline = 'none');
+  const card = document.getElementById('card-' + idx);
+  if (card) {
+    card.style.outline = '2px solid #00d4ff';
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  selectedIdx = idx;
+}
+
+function setScore(index, score) {
+  if (!currentBatch) return;
+  currentBatch.items[index].score = score;
+  currentBatch.items[index].rated = true;
+  const card = document.getElementById('card-' + index);
+  if (card) card.querySelectorAll('.score').forEach((el, i) => {
+    el.className = 'score' + (i === score ? ' active' : '');
+  });
+}
+
+function playVideo(mediaId) {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  modal.onclick = () => modal.remove();
+  modal.innerHTML = `<video src="/api/media/${mediaId}/stream" controls autoplay style="max-width:95vw;max-height:90vh" onclick="event.stopPropagation()"></video>`;
+  document.body.appendChild(modal);
+}
+
+async function submitRatings() {
+  if (!currentBatch) { toast('请先加载批次', 'warn'); return; }
+  // 只发送已评分的项，未评分的用 null
+  const scores = currentBatch.items.map(i => i.rated ? i.score : null);
+  const ratedCount = currentBatch.items.filter(i => i.rated).length;
+  if (ratedCount === 0) { toast('请先评分再提交', 'warn'); return; }
+  try {
+    const r = await fetch(`${API}/api/batch/${currentBatch.id}/rate`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({scores})
+    });
+    const d = await r.json();
+    toast(`✅ 已评 ${d.rated}/${d.total || '??'} 项`);
+    loadStats();
+    currentBatch = null;
+    document.getElementById('grid').innerHTML = '';
+    document.getElementById('bottom-controls').style.display = 'none';
+  } catch(e) {
+    toast('提交失败', true);
+  }
+}
+
+// === 已评记录 ===
+async function loadRated() {
+  const type = document.getElementById('rated-type').value;
+  const scoreRange = document.getElementById('rated-score').value.split('-');
+  const [minS, maxS] = scoreRange.map(Number);
+  try {
+    const r = await fetch(`${API}/api/rated?type=${type}&page=${ratedPage}&min_score=${minS}&max_score=${maxS}`);
+    const d = await r.json();
+    const list = document.getElementById('rated-list');
+    list.innerHTML = d.items.map(item => `
+      <div class="rated-item">
+        ${item.media_type === 'video'
+          ? `<div style="width:60px;height:60px;background:#222;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer" onclick="playVideo(${item.media_id})">▶️</div>`
+          : `<img src="/api/media/${item.media_id}/image?size=thumb" onclick="window.open('/api/media/${item.media_id}/image')" style="cursor:pointer" />`
+        }
+        <div class="info">
+          <div class="name">${item.filename}</div>
+          <div class="meta">${item.media_type === 'video' ? '🎬' : '📷'} ${(item.file_size/1024/1024).toFixed(1)}MB</div>
+          <div class="rescore">${[0,1,2,3,4,5,6,7,8,9].map(s => `<span onclick="rescore(${item.media_id},${s},this)">${s}</span>`).join('')}</div>
+        </div>
+        <div class="badge">${item.score}</div>
+      </div>
+    `).join('') || '<div style="text-align:center;color:#666;padding:40px">没有匹配的记录</div>';
+
+    // 分页
+    const totalPages = Math.ceil(d.total / d.page_size);
+    document.getElementById('rated-pagination').innerHTML = `
+      ${ratedPage > 1 ? `<button class="btn btn-outline" onclick="ratedPage--;loadRated()">← 上一页</button>` : ''}
+      <span style="color:#888;padding:8px">第 ${ratedPage} / ${totalPages} 页 (${d.total} 条)</span>
+      ${ratedPage < totalPages ? `<button class="btn btn-outline" onclick="ratedPage++;loadRated()">下一页 →</button>` : ''}
+    `;
+
+    // 显示删除按钮（当筛选0分时）
+    document.getElementById('btn-delete').style.display = (maxS <= 0) ? 'inline-block' : 'none';
+  } catch(e) { toast('加载失败', true); }
+}
+
+async function rescore(mediaId, score, el) {
+  try {
+    const r = await fetch(`${API}/api/media/${mediaId}/rescore`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({score})
+    });
+    if (r.ok) {
+      const badge = el.closest('.rated-item').querySelector('.badge');
+      badge.textContent = score;
+      badge.style.color = score >= 7 ? '#00c853' : score >= 4 ? '#00d4ff' : '#ff1744';
+      toast(`✅ 已改为 ${score} 分`);
+      loadStats();
+    }
+  } catch(e) { toast('修改失败', true); }
+}
+
+async function deleteLowScores() {
+  const type = document.getElementById('rated-type').value;
+  if (!confirm('确定删除所有 0 分的文件？\n文件将移动到回收站，不会永久删除。')) return;
+  try {
+    const r = await fetch(`${API}/api/delete-low`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({type, max_score: 0})
+    });
+    const d = await r.json();
+    toast(`🗑️ 已移动 ${d.total} 个文件到回收站`);
+    loadRated();
+    loadStats();
+  } catch(e) { toast('删除失败', true); }
+}
+
+// === CSV 导出 ===
+function downloadCSV(type) {
+  window.open(`${API}/api/export/csv?type=${type}`);
+  toast(`📥 正在下载 ${type} 评分 CSV`);
+}
+
+// === 键盘快捷键 ===
+document.addEventListener('keydown', (e) => {
+  // 在输入框中不拦截
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+  // 数字键 0-9 评分
+  if (currentBatch && selectedIdx >= 0 && e.key >= '0' && e.key <= '9') {
+    setScore(selectedIdx, parseInt(e.key));
+    return;
+  }
+  // 方向键切换
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    if (currentBatch) highlightCard(selectedIdx + 1);
+  }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    if (currentBatch) highlightCard(selectedIdx - 1);
+  }
+  // Enter 提交
+  if (e.key === 'Enter' && currentBatch) {
+    e.preventDefault();
+    submitRatings();
+  }
+  // N 下一批
+  if ((e.key === 'n' || e.key === 'N') && !currentBatch) {
+    loadBatch('image');
+  }
+  // ESC 关闭弹窗
+  if (e.key === 'Escape') {
+    document.querySelectorAll('[style*="position:fixed"]').forEach(m => m.remove());
+  }
+});
+
+loadStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置 - 媒体智能管理平台</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, sans-serif; background: #0f0f0f; color: #e0e0e0; }
+.header { background: #1a1a2e; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #252540; }
+.header h1 { font-size: 18px; color: #fff; }
+.header a { color: #00d4ff; text-decoration: none; font-size: 14px; padding: 6px 14px; border-radius: 6px; border: 1px solid #00d4ff33; }
+.header a:hover { background: #00d4ff11; }
+.container { max-width: 560px; margin: 0 auto; padding: 20px; }
+.section { background: #1a1a2e; border-radius: 14px; padding: 0; margin-bottom: 16px; overflow: hidden; }
+.section-title { padding: 14px 18px; font-size: 15px; font-weight: 600; color: #00d4ff; border-bottom: 1px solid #252540; display: flex; align-items: center; gap: 8px; }
+.field { padding: 14px 18px; border-bottom: 1px solid #1f1f35; position: relative; }
+.field:last-child { border-bottom: none; }
+.field label { display: block; font-size: 14px; color: #ccc; margin-bottom: 6px; }
+.field .hint { font-size: 12px; color: #555; margin-top: 5px; line-height: 1.4; }
+.field .range { display: flex; align-items: center; gap: 12px; }
+.field input[type=number] { width: 100%; padding: 10px 14px; border: 1px solid #333; border-radius: 8px; background: #0f0f0f; color: #e0e0e0; font-size: 16px; outline: none; transition: border-color 0.2s; }
+.field input[type=number]:focus { border-color: #00d4ff; }
+.field input[type=number].invalid { border-color: #ff1744; background: #ff174411; }
+.field input[type=range] { flex: 1; -webkit-appearance: none; height: 6px; background: #333; border-radius: 3px; outline: none; }
+.field input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #00d4ff; cursor: pointer; }
+.field .range-val { min-width: 44px; text-align: center; font-weight: 600; color: #00d4ff; font-size: 15px; }
+.field .error-msg { display: none; color: #ff1744; font-size: 12px; margin-top: 4px; }
+.field.has-error .error-msg { display: block; }
+.actions { padding: 0; }
+.btn { display: block; width: 100%; padding: 14px; border: none; cursor: pointer; font-size: 15px; font-weight: 600; transition: all 0.2s; background: #0066ff; color: #fff; }
+.btn:hover { background: #0052cc; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn.saving { background: #333; color: #888; }
+.btn.success { background: #00c853; }
+.btn.error { background: #ff1744; }
+.status-bar { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-size: 13px; color: #666; }
+.status-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+.status-bar .dot.saved { background: #00c853; }
+.status-bar .dot.modified { background: #ffab00; }
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #00c853; color: #fff; padding: 12px 24px; border-radius: 10px; font-weight: 600; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 999; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.error { background: #ff1744; }
+.toast.warn { background: #ffab00; color: #000; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚙️ 设置</h1>
+  <a href="/">← 返回</a>
+</div>
+
+<div class="container">
+  <div class="status-bar">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">加载中...</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📊 评分配置</div>
+    <div class="field" id="f-batch">
+      <label>每批次数量</label>
+      <div class="range">
+        <input type="range" id="batch_count_r" min="1" max="50" oninput="syncRange('batch_count')">
+        <span class="range-val" id="batch_count_v">10</span>
+      </div>
+      <div class="hint">每次加载多少张进行评分</div>
+      <div class="error-msg" id="batch_count_err"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">🖼️ 缩略图</div>
+    <div class="field" id="f-size">
+      <label>最大尺寸 (px)</label>
+      <div class="range">
+        <input type="range" id="thumb_max_size_r" min="200" max="4000" step="100" oninput="syncRange('thumb_max_size')">
+        <span class="range-val" id="thumb_max_size_v">1200</span>
+      </div>
+      <div class="hint">缩放到此尺寸内保持原图比例</div>
+      <div class="error-msg" id="thumb_max_size_err"></div>
+    </div>
+    <div class="field" id="f-quality">
+      <label>JPEG 质量</label>
+      <div class="range">
+        <input type="range" id="thumb_quality_r" min="30" max="100" oninput="syncRange('thumb_quality')">
+        <span class="range-val" id="thumb_quality_v">80</span>
+      </div>
+      <div class="hint">30 = 最小体积 → 100 = 最佳质量</div>
+      <div class="error-msg" id="thumb_quality_err"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">🎬 视频</div>
+    <div class="field" id="f-frame">
+      <label>帧提取时间点 (秒)</label>
+      <div class="range">
+        <input type="range" id="video_frame_time_r" min="0.5" max="60" step="0.5" oninput="syncRange('video_frame_time')">
+        <span class="range-val" id="video_frame_time_v">5</span>
+      </div>
+      <div class="hint">从视频第几秒提取画面作为缩略图</div>
+      <div class="error-msg" id="video_frame_time_err"></div>
+    </div>
+  </div>
+
+  <div class="section actions">
+    <button class="btn" id="saveBtn" onclick="saveConfig()">💾 保存设置</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const fields = ['batch_count', 'thumb_max_size', 'thumb_quality', 'video_frame_time'];
+let saved = {};
+let modified = false;
+
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+function syncRange(id) {
+  const r = document.getElementById(id + '_r');
+  const v = document.getElementById(id + '_v');
+  v.textContent = r.value;
+  clearError(id);
+  updateStatus();
+}
+
+function updateStatus() {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  let changed = false;
+  for (const f of fields) {
+    const v = parseFloat(document.getElementById(f + '_r').value);
+    if (v !== saved[f]) { changed = true; break; }
+  }
+  modified = changed;
+  dot.className = 'dot ' + (changed ? 'modified' : 'saved');
+  txt.textContent = changed ? '有未保存的修改' : '已同步';
+}
+
+function showError(id, msg) {
+  const f = document.getElementById(id.replace(/^f-/, 'f-'));
+  const field = document.getElementById('f-' + id.replace(/_r$/, '').replace(/_v$/, ''));
+  if (field) field.classList.add('has-error');
+  const err = document.getElementById(id + '_err') || document.getElementById(id.replace(/_r$/, '_err'));
+  if (err) { err.textContent = msg; err.style.display = 'block'; }
+  document.getElementById(id + '_r')?.classList.add('invalid');
+}
+
+function clearError(id) {
+  const field = document.getElementById('f-' + id);
+  if (field) field.classList.remove('has-error');
+  const r = document.getElementById(id + '_r');
+  if (r) r.classList.remove('invalid');
+  const err = document.getElementById(id + '_err');
+  if (err) { err.textContent = ''; err.style.display = 'none'; }
+}
+
+function clearAllErrors() {
+  fields.forEach(clearError);
+}
+
+function validate() {
+  clearAllErrors();
+  let ok = true;
+  const checks = [
+    { id: 'batch_count', min: 1, max: 50, label: '批次数量' },
+    { id: 'thumb_max_size', min: 200, max: 4000, label: '缩略图尺寸' },
+    { id: 'thumb_quality', min: 30, max: 100, label: '图片质量' },
+    { id: 'video_frame_time', min: 0.5, max: 60, label: '帧时间点' },
+  ];
+  for (const c of checks) {
+    const v = parseFloat(document.getElementById(c.id + '_r').value);
+    if (isNaN(v) || v < c.min || v > c.max) {
+      showError(c.id, `${c.label}必须在 ${c.min}-${c.max} 之间`);
+      ok = false;
+    }
+  }
+  return ok;
+}
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const cfg = await r.json();
+    saved = {};
+    for (const f of fields) {
+      saved[f] = cfg[f];
+      document.getElementById(f + '_r').value = cfg[f];
+      document.getElementById(f + '_v').textContent = cfg[f];
+    }
+    document.getElementById('statusDot').className = 'dot saved';
+    document.getElementById('statusText').textContent = '已同步';
+  } catch(e) {
+    toast('⚠️ 加载配置失败: ' + e.message, 'error');
+    document.getElementById('statusDot').className = 'dot';
+    document.getElementById('statusText').textContent = '加载失败';
+  }
+}
+
+async function saveConfig() {
+  if (!validate()) {
+    toast('请修正标红的字段', 'warn');
+    return;
+  }
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.className = 'btn saving';
+  btn.textContent = '⏳ 保存中...';
+
+  try {
+    const data = {};
+    for (const f of fields) {
+      data[f] = parseFloat(document.getElementById(f + '_r').value);
+    }
+    const r = await fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if (r.ok) {
+      const cfg = await r.json();
+      saved = {};
+      for (const f of fields) saved[f] = cfg[f];
+      btn.className = 'btn success';
+      btn.textContent = '✅ 已保存';
+      document.getElementById('statusDot').className = 'dot saved';
+      document.getElementById('statusText').textContent = '已同步';
+      toast('✅ 设置已保存');
+    } else {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || '保存失败');
+    }
+  } catch(e) {
+    btn.className = 'btn error';
+    btn.textContent = '❌ 保存失败';
+    toast('❌ ' + e.message, 'error');
+  } finally {
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.className = 'btn';
+      btn.textContent = '💾 保存设置';
+    }, 1500);
+  }
+}
+
+// 监听变化
+fields.forEach(f => {
+  document.getElementById(f + '_r').addEventListener('input', updateStatus);
+});
+
+loadConfig();
+</script>
+</body>
+</html>

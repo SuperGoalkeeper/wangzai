@@ -1,0 +1,19 @@
+# Dependencies
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Database & large files
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets
+.env
+
+# Runtime
+cache/
+.cookies/
+.media-browser/
+*.log

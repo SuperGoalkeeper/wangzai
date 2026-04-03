@@ -1,0 +1,6 @@
+{
+  "batch_count": 30,
+  "video_frame_time": 5.0,
+  "thumb_max_size": 1200,
+  "thumb_quality": 80
+}
